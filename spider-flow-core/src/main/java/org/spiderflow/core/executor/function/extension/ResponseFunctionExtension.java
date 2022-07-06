@@ -1,9 +1,6 @@
 package org.spiderflow.core.executor.function.extension;
 
-import java.util.List;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
+import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
@@ -16,6 +13,10 @@ import org.spiderflow.executor.FunctionExtension;
 import org.spiderflow.io.SpiderResponse;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 @Component
 public class ResponseFunctionExtension implements FunctionExtension {
 
@@ -27,7 +28,18 @@ public class ResponseFunctionExtension implements FunctionExtension {
     @Comment("将请求结果转为Element对象")
     @Example("${resp.element()}")
     public static Element element(SpiderResponse response) {
-        return Jsoup.parse(response.getHtml(),response.getUrl());
+        return Jsoup.parse(response.getHtml(), response.getUrl());
+    }
+
+    @Comment("将JSONP请求结果转为Json对象")
+    @Example("${resp.jsonp('$.code')}")
+    public static Object jsonp(SpiderResponse response, String path) {
+        Object json = JSONObject.parse(StringUtils.substringAfter(response.getHtml(), "="));
+        if (StringUtils.isNotEmpty(path)) {
+            return ExtractUtils.getValueByJsonPath(json, path);
+        } else {
+            return json;
+        }
     }
 
     @Comment("根据xpath在请求结果中查找")
@@ -111,7 +123,7 @@ public class ResponseFunctionExtension implements FunctionExtension {
     public static List<String> links(SpiderResponse response, String regx) {
         Pattern pattern = Pattern.compile(regx);
         return links(response)
-				.stream()
+                .stream()
                 .filter(link -> pattern.matcher(link).matches())
                 .collect(Collectors.toList());
     }
